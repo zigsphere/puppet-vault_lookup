@@ -1,10 +1,11 @@
-Puppet::Functions.create_function(:'vault_lookup::lookup') do
-  dispatch :lookup do
+Puppet::Functions.create_function(:'vault_lookup::lookup_key') do
+  dispatch :lookup_key do
     param 'String', :path
+    param 'String', :key
     optional_param 'String', :vault_url
   end
 
-  def lookup(path, vault_url = nil)
+  def lookup_key(path, key, vault_url = nil)
     if vault_url.nil?
       Puppet.debug 'No Vault address was set on function, defaulting to value from VAULT_ADDR env value'
       vault_url = ENV['VAULT_ADDR']
@@ -35,7 +36,8 @@ Puppet::Functions.create_function(:'vault_lookup::lookup') do
       raise Puppet::Error, 'Error parsing json secret data from vault response'
     end
 
-    Puppet::Pops::Types::PSensitiveType::Sensitive.new(data)
+    data_from_key = data[key]
+    Puppet::Pops::Types::PSensitiveType::Sensitive.new(data_from_key)
   end
 
   private
@@ -59,16 +61,13 @@ Puppet::Functions.create_function(:'vault_lookup::lookup') do
   end
 
   def append_api_errors(message, response)
-    errors   = json_parse(response, 'errors')
-    warnings = json_parse(response, 'warnings')
+    errors = begin
+               JSON.parse(response.body)['errors']
+             rescue StandardError
+               nil
+             end
     message << " (api errors: #{errors})" if errors
-    message << " (api warnings: #{warnings})" if warnings
-    message
-  end
 
-  def json_parse(response, field)
-    JSON.parse(response.body)[field]
-  rescue StandardError
-    nil
+    message
   end
 end
