@@ -24,7 +24,7 @@ Puppet::Functions.create_function(:'vault_lookup::lookup_key') do
 
     token = get_auth_token(connection)
 
-    secret_response = connection.get("/v1/#{path}", 'X-Vault-Token' => token)
+    secret_response = connection.get("/v1/data/#{path}", 'X-Vault-Token' => token)
     unless secret_response.is_a?(Net::HTTPOK)
       message = "Received #{secret_response.code} response code from vault at #{uri.host} for secret lookup"
       raise Puppet::Error, append_api_errors(message, secret_response)
